@@ -54,7 +54,7 @@ popular_df, pr_df, uncivil_df = load_data()
 
 selected_file = st.selectbox("select file", ["Random vs Political", "Political vs Uncivil"]) # add "Political vs Random" and Uncivil vs Political 
 
-if selected_file == "popular vs random":
+if selected_file == "Random vs Political":
     df = pr_df.copy() 
 else:
     df = uncivil_df.copy()
