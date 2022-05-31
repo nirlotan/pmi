@@ -4,7 +4,6 @@ import os
 
 file_list = []
 
-
 def make_clickable(username):
     # target _blank to open new window
     # extract clickable text to display for your link
@@ -17,9 +16,15 @@ def make_clickable(username):
 
 @st.cache
 def load_data():
-    # popular_df = pd.read_pickle(
-    #     "/Users/nlotan/code/university/SocialVec/auxiliary/users_with_over_200_DETAILS.pkl")
-    
+
+    datasets_paths = { "Political vs Random" : "https://www.dropbox.com/s/8roum7tvjeverac/pmi_political_vs_random.csv.gz?dl=1",
+             "Random vs Political" : "https://www.dropbox.com/s/rvkaqcajpit0766/pmi_random_vs_political.csv.gz?dl=1",
+             "Uncivil vs Political" : "https://www.dropbox.com/s/bsvpxdyrel8uzrb/pmi_uncivil_vs_political.csv.gz?dl=1", #### Replace this one
+             "Political vs Uncivil" : "https://www.dropbox.com/s/1xfevw3d99dgupd/pmi_political_uncivil.csv.gz?dl=1",
+            }
+
+
+
     popular_df = pd.read_pickle("https://www.dropbox.com/s/8w6m7o2qwfp3du1/users_with_over_200_DETAILS.pkl?dl=1")
     
     popular_df = popular_df[(popular_df['user_id'] != "nan") & (
@@ -35,15 +40,17 @@ def load_data():
     wiki['wikipedia'] = wiki['wikipedia'].apply(lambda link: f'<a target="_blank" href="{link}">wiki url</a>')
     
     popular_df = popular_df.merge(wiki, on="user_id",how="left")
-    pr_df = pd.read_csv("https://www.dropbox.com/s/rvkaqcajpit0766/pmi_random_political.csv.gz?dl=1", compression="gzip")
     
-    uncivil_df = pd.read_csv("https://www.dropbox.com/s/1xfevw3d99dgupd/pmi_political_uncivil.csv.gz?dl=1", compression="gzip")
+    datasets = {}
     
-    return popular_df, pr_df ,uncivil_df
+    for key in datasets_paths.keys():
+        datasets[key] = pd.read_csv(datasets_paths[key], compression="gzip")
+    
+    return popular_df, datasets
 
 st.set_page_config(layout="wide")
 
-popular_df, pr_df, uncivil_df = load_data()
+popular_df, datasets = load_data()
 
 
 # for path, subdirs, files in os.walk("data"):
@@ -52,16 +59,13 @@ popular_df, pr_df, uncivil_df = load_data()
 #             file_list.append(file)
 
 
-selected_file = st.selectbox("select file", ["Random vs Political", "Political vs Uncivil"]) # add "Political vs Random" and Uncivil vs Political 
+selected_file = st.selectbox("select file", datasets.keys()) # add "Political vs Random" and Uncivil vs Political 
 
-if selected_file == "Random vs Political":
-    df = pr_df.copy() 
-else:
-    df = uncivil_df.copy()
+df = datasets[selected_file].copy() 
+
 st_col1, st_col2, st_col3 = st.columns(3)
-cic_filter = st_col2.slider("Filter users that appear less than:", 20, 100)
-sort_pmi = st_col1.selectbox("Sort PMI by:",['Accending','Decending'])
-specific_user = st_col3.text_input("Search for a specific user:" ,key =1)
+cic_filter = st_col1.slider("Filter users that appear less than:", 20, 100)
+specific_user = st_col2.text_input("Search for a specific user:" ,key =1)
 
 
 df.count_in_class = df.count_in_class.astype(int)
@@ -69,7 +73,7 @@ df.drop(df.columns[df.columns.str.contains(
     'unnamed', case=False)], axis=1, inplace=True)
 df.rename(columns={'user2': 'user_id'}, inplace=True)
 
-df.sort_values(by=['pmi'], ascending=True, inplace=True)
+df.sort_values(by=['pmi'], ascending=False, inplace=True)
 
 merged_df = pd.merge(df, popular_df, on="user_id", how="left")
 
@@ -101,13 +105,4 @@ if specific_user != "":
         if submit_button:
             placeholder_2.empty()
 
-elif sort_pmi == "Accending":
-    #merged_df.sort_values(by=['pmi'], ascending=True, inplace=True)
-    st.write(merged_df.head(50).to_html(escape=False, index=False), unsafe_allow_html=True)
-else:
-    st.write(merged_df.tail(50).to_html(escape=False, index=False), unsafe_allow_html=True)
-    #merged_df.sort_values(by='pmi', ascending=False, inplace=True)
-#st.write(df.to_html(escape=False)
-
-
-# st.dataframe(popular_df)
+st.write(merged_df.head(50).to_html(escape=False, index=False), unsafe_allow_html=True)
